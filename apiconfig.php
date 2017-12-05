@@ -21,6 +21,18 @@
  * @link			http://sourceoforge.net/projects/chronolabsapis
  */
 
+
+if (!is_file(__DIR__ . DIRECTORY_SEPARATOR . 'mainfile.php') || !is_file(__DIR__ . DIRECTORY_SEPARATOR . 'include' . DIRECTORY_SEPARATOR . 'license.php'))
+{
+    if (strpos($_SERVER["REQUEST_URI"], 'install/')>0)
+        return false;
+        header('Location: ' . "./install");
+        exit(0);
+}
+
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'mainfile.php';
+
+
 /**
  * Opens Access Origin Via networking Route NPN
  */

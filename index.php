@@ -26,53 +26,68 @@
 	mt_srand(mt_rand(-microtime(true), microtime(true))/$parts[1]);
 	$salter = ((float)(mt_rand(0,1)==1?'':'-').$parts[1].'.'.$parts[0]) / sqrt((float)$parts[1].'.'.intval(cosh($parts[0])))*tanh($parts[1]) * mt_rand(1, intval($parts[0] / $parts[1]));
 	header('Blowfish-salt: '. $salter);
-	
-	global $domain, $protocol, $business, $entity, $contact, $referee, $peerings, $source;
 	require_once __DIR__ . DIRECTORY_SEPARATOR . 'apiconfig.php';
-	
-	/**
-	 * Global API Configurations and Setting from file Constants!
-	 */
-	$domain = getDomainSupportism('domain', $_SERVER["HTTP_HOST"]);
-	$protocol = getDomainSupportism('protocol', $_SERVER["HTTP_HOST"]);
-	$business = getDomainSupportism('business', $_SERVER["HTTP_HOST"]);
-	$entity = getDomainSupportism('entity', $_SERVER["HTTP_HOST"]);
-	$contact = getDomainSupportism('contact', $_SERVER["HTTP_HOST"]);
-	$referee = getDomainSupportism('referee', $_SERVER["HTTP_HOST"]);
-	$peerings = getPeersSupporting();
+
 	
 	/**
 	 * URI Path Finding of API URL Source Locality
 	 * @var unknown_type
 	 */
-	$pu = parse_url($_SERVER['REQUEST_URI']);
-	$source = (isset($_SERVER['HTTPS'])?'https://':'http://').strtolower($_SERVER['HTTP_HOST']).$pu['path'];
-	unset($pu);
-	global $seed;
+	$odds = $inner = array();
+	foreach($_GET as $key => $values) {
+	    if (!isset($inner[$key])) {
+	        $inner[$key] = $values;
+	    } elseif (!in_array(!is_array($values) ? $values : md5(json_encode($values, true)), array_keys($odds[$key]))) {
+	        if (is_array($values)) {
+	            $odds[$key][md5(json_encode($inner[$key] = $values, true))] = $values;
+	        } else {
+	            $odds[$key][$inner[$key] = $values] = "$values--$key";
+	        }
+	    }
+	}
 	
-	define('MAXIMUM_QUERIES', 35);
-	ini_set('memory_limit', '128M');
-	//include dirname(dirname(dirname(__FILE__))).'/web/public_html/mainfile.php';
-	include dirname(__FILE__).'/functions.php';
-
+	foreach($_POST as $key => $values) {
+	    if (!isset($inner[$key])) {
+	        $inner[$key] = $values;
+	    } elseif (!in_array(!is_array($values) ? $values : md5(json_encode($values, true)), array_keys($odds[$key]))) {
+	        if (is_array($values)) {
+	            $odds[$key][md5(json_encode($inner[$key] = $values, true))] = $values;
+	        } else {
+	            $odds[$key][$inner[$key] = $values] = "$values--$key";
+	        }
+	    }
+	}
 	
+	foreach(parse_url('http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].(strpos($_SERVER['REQUEST_URI'], '?')?'&':'?').$_SERVER['QUERY_STRING'], PHP_URL_QUERY) as $key => $values) {
+	    if (!isset($inner[$key])) {
+	        $inner[$key] = $values;
+	    } elseif (!in_array(!is_array($values) ? $values : md5(json_encode($values, true)), array_keys($odds[$key]))) {
+	        if (is_array($values)) {
+	            $odds[$key][md5(json_encode($inner[$key] = $values, true))] = $values;
+	        } else {
+	            $odds[$key][$inner[$key] = $values] = "$values--$key";
+	        }
+	    }
+	}
+	
+	$persons = array();
 	$help=false;
-	if ((!isset($_GET['selected']) || empty($_GET['selected']))) {
+	if ((!isset($inner['selected']) || empty($inner['selected']))) {
 		$help=true;
-	} elseif (isset($_GET['selected']) && !empty($_GET['selected'])) {
-		$output = trim($_GET['output']);
-		$numselected = intval($_GET['selected']);
-		foreach($_REQUEST as $key => $value) {
+	} elseif (isset($inner['selected']) && !empty($inner['selected'])) {
+	    $help=false;
+		$output = trim($inner['output']);
+		$numselected = intval($inner['selected']);
+		foreach($inner as $key => $value) {
 			if (is_array($value)) {
-				$persons = $value;
+				$persons = array_merge($persons, $value);
 				continue;
 			}
-		}		
+		}	
 	} else {
 		$help=true;
 	}
 	
-		
 	/**
 	 * Buffers Help
 	 */
@@ -120,7 +135,8 @@
 			echo '</pre>';
 			break;
 		case 'raw':
-			echo "{ '". implode("' } { '", $data) . "' }";
+		    header('Content-type: application/x-httpd-php');
+			echo "<?php\n\nreturn " . var_export($data) . ";\n\n?>";
 			break;
 		case 'json':
 			header('Content-type: application/json');
